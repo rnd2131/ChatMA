@@ -1,52 +1,48 @@
-const { Client, Account, Databases } = Appwrite;
+        // Initialize Appwrite Client
+        const client = new Appwrite.Client();
+        client
+            .setEndpoint('https://cloud.appwrite.io/v1') // Replace with your Appwrite endpoint
+            .setProject('678a713b001b4ce3aca3'); // Replace with your Project ID
 
-const client = new Client()
-    .setProject('678a713b001b4ce3aca3'); // Replace with your project ID
+        // Initialize Appwrite Services
+        const account = new Appwrite.Account(client);
+        const databases = new Appwrite.Databases(client);
 
-const account = new Account(client);
-const databases = new Databases(client);
+        // Database and Collection IDs
+        const databaseId = '678a7d860018fb7ad72d'; // Replace with your database ID
+        const collectionId = '678a7db4000cd42b6a86'; // Replace with your collection ID
 
-document.querySelector('form').addEventListener('submit', async (event) => {
-    event.preventDefault();
+        // Form submit event listener
+        document.getElementById('registerForm').addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent form submission
 
-    const username = document.querySelector('input[name="username"]').value;
-    const password = document.querySelector('input[name="password"]').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
 
-    try {
-        // Check if user exists
-        const user = await account.get(username);
-        if (user) {
-            // User exists, attempt to create session
-            const response = await account.createSession(username, password);
-            console.log('Login successful:', response);
-            alert('Login successful!');
-        }
-    } catch (error) {
-        if (error.code === 404) {
-            // User does not exist, create user
             try {
-                const newUser = await account.create(username, password);
-                console.log('User created:', newUser);
-                alert('User created successfully!');
+                // 1. Create a user in Appwrite's Users API
+                const user = await account.create(
+                    'unique()', // Unique user ID
+                    username,   // Email
+                    password    // Password
+                );
+                console.log('User registered successfully:', user);
 
-                // Save user data to database
-                const databaseId = '678a7d860018fb7ad72d'; // Replace with your database ID
-                const collectionId = '678a7db4000cd42b6a86'; // Replace with your collection ID
-                const documentId = 'unique()'; // Use unique ID or specify your own
-                const data = {
-                    username: username,
-                    password: password
-                };
+                // 2. Save the user data in the database collection
+                const document = await databases.createDocument(
+                    databaseId,
+                    collectionId,
+                    'unique()', // Unique document ID
+                    {
+                        username: username,
+                        userId: user.$id, // Reference to Appwrite user
+                    }
+                );
+                console.log('User data saved in database:', document);
 
-                const document = await databases.createDocument(databaseId, collectionId, documentId, data);
-                console.log('Document created:', document);
-            } catch (createError) {
-                console.error('User creation failed:', createError);
-                alert('User creation failed. Please try again.');
+                alert('User registered successfully!');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred: ' + error.message);
             }
-        } else {
-            console.error('Login failed:', error);
-            alert('Login failed. Please check your credentials and try again.');
-        }
-    }
-});
+        });
